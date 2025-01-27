@@ -3,13 +3,15 @@ import os
 import string
 import random
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+from model0 import XLMRCP
 
 
 class MyModel:
     """
     This is a starter model to get you started. Feel free to modify this file.
     """
-    # https://huggingface.co/FacebookAI/xlm-roberta-base
+    def __init__(self):
+        self.model = XLMRCP()
 
     @classmethod
     def load_training_data(cls):
@@ -39,12 +41,7 @@ class MyModel:
 
     def run_pred(self, data):
         # your code here
-        preds = []
-        all_chars = string.ascii_letters
-        for inp in data:
-            # this model just predicts a random character each time
-            top_guesses = [random.choice(all_chars) for _ in range(3)]
-            preds.append(''.join(top_guesses))
+        preds = self.model(data)
         return preds
 
     def save(self, work_dir):
