@@ -9,6 +9,7 @@ class MyModel:
     """
     This is a starter model to get you started. Feel free to modify this file.
     """
+    # https://huggingface.co/FacebookAI/xlm-roberta-base
 
     @classmethod
     def load_training_data(cls):
