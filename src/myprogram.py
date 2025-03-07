@@ -3,15 +3,27 @@ import os
 import string
 import random
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from model0 import XLMRCP
+import torch
+from transformers import AutoModel, AutoTokenizer
+from model1 import UnicodeClassifier
+from unique_chars import get_unique_chars
 
 
 class MyModel:
     """
     This is a starter model to get you started. Feel free to modify this file.
     """
-    def __init__(self):
-        self.model = XLMRCP()
+    tokenizer = None
+    model = None
+    idx2char, _ = get_unique_chars()
+    device = "cpu"
+    def __init__(self, device="cpu"):
+        if MyModel.tokenizer is None:
+            MyModel.tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-base")
+        if MyModel.model is None:
+            MyModel.model = UnicodeClassifier("xlm-roberta-base", 33735)
+        if MyModel.device != device:
+            MyModel.device = device
 
     @classmethod
     def load_training_data(cls):
@@ -26,7 +38,7 @@ class MyModel:
         with open(fname) as f:
             for line in f:
                 inp = line[:-1]  # the last character is a newline
-                data.append(inp)
+                data.append(cls.tokenizer(inp, return_tensors="pt"))
         return data
 
     @classmethod
@@ -41,7 +53,12 @@ class MyModel:
 
     def run_pred(self, data):
         # your code here
-        preds = self.model(data)
+        preds = []
+        for input in data:
+            logits = MyModel.model(input["input_ids"].to(MyModel.device), input["attention_mask"].to(MyModel.device))
+            _, top_k_indices = torch.topk(logits.cpu(), k=3, dim=-1)
+            top_k_chars = ["".join([MyModel.idx2char[idx.item()] for idx in i]) for i in top_k_indices][0]
+            preds.append(top_k_chars)
         return preds
 
     def save(self, work_dir):
@@ -58,8 +75,10 @@ class MyModel:
         # model = AutoModelForSequenceClassification.from_pretrained("./my_model_checkpoint") model from transformers
 
         # this particular model has nothing to load, but for demonstration purposes we will load a blank file
-        with open(os.path.join(work_dir, 'model.checkpoint')) as f:
-            dummy_save = f.read()
+        cls.model = MyModel.model = UnicodeClassifier("xlm-roberta-base", 33735)
+        path = "".join([work_dir, "/tiny_model.pth"])
+        cls.model.load_state_dict(torch.load(path, map_location=cls.device))
+        cls.tokenizer = AutoTokenizer.from_pretrained("xlm-roberta-base")
         return MyModel()
 
 
